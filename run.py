@@ -1,7 +1,8 @@
 import data
-import vgg.training
-import vgg.evaluation
-import vgg.preprocess
+import evaluation
+import training
+
+import vgg.model
 
 import argparse
 
@@ -9,10 +10,12 @@ import argparse
 def run(model):
     """Run training and evaluation for specified model."""
     if model == "vgg":
-        train_dataset = data.get_data("cifar10", prep_fn=vgg.preprocess.prep)
-        model = vgg.training.train(train_dataset)
+        train_dataset = data.get_data("cifar10", prep_fn=vgg.model.prep)
+        model = vgg.model.construct_model(vgg.model.CONFIG)
+        optimizer = vgg.model.optimizer(vgg.model.CONFIG)
+        training.train(train_dataset, model, vgg.model.loss, optimizer)
         test_dataset = data.get_data("cifar10", mode="test")
-        vgg.evaluation.evaluate(model, test_dataset)
+        evaluation.evaluate(test_dataset, model, vgg.model.loss)
     else:
         raise ValueError("%s is not a valid model" % model)
 
