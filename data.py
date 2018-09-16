@@ -12,7 +12,7 @@ def get_data(
         num_epochs=20,
         prep_fn=None):
     """
-    Construct a tf.data.Iterator for the specified dataset.
+    Construct a tf.data.Dataset for the specified dataset.
 
     Args:
         dataset: string representing the dataset to load
@@ -32,6 +32,10 @@ def get_data(
     else:
         ValueError("Unknown dataset: %s" % dataset)
 
+    if prep_fn:
+        x_train, y_train, x_test, y_test = prep_fn(
+            x_train, y_train, x_test, y_test)
+
     if mode == "train":
         x, y = x_train, y_train
     elif mode == "test":
@@ -41,8 +45,6 @@ def get_data(
 
     dataset = tensorflow.data.Dataset.from_tensor_slices(
         (x.astype(np.float32), y.astype(np.int32)))
-    if prep_fn:
-        dataset = prep_fn(dataset)
     drop_remainder = mode == "train"
     dataset = dataset.repeat(num_epochs).shuffle(buffer_size=500)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)

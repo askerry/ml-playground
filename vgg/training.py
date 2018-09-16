@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
+import tensorflow.contrib.layers
 
 layers = tf.keras.layers
 
@@ -20,7 +21,7 @@ VGG_CONFIG = {
     "initial_learning_rate": .01,
     "learning_rate_factor": 10,
 
-    # Regularised by weight decay (L2) and dropout
+    # Regularized by weight decay (L2) and dropout
     "l2_multiplier": .0005,
     "dropout_ratio": .5,
 
@@ -31,9 +32,12 @@ VGG_CONFIG = {
     # Max-pooling is performed over a 2 × 2 pixel window
     "max_pooling_window": 2,
 
+    # Number of channels in initial convolutional layers
+    "num_initial_channels": 64,
+
     # Fully-connected layers have 4096 channels (except final
     # soft-max layer with has the same number of channels as classes)
-    "num_fc_channels": 4096,
+    "num_fc_channels": 1096,
 }
 
 
@@ -43,8 +47,9 @@ def train(dataset, config=None):
     model = construct_model(config)
     optimizer = tf.train.MomentumOptimizer(
         learning_rate, config["momentum"])
+    optimizer = tf.train.AdamOptimizer()
 
-    writer = tf.contrib.summary.create_file_writer("vgg")
+    writer = tf.contrib.summary.create_file_writer("vgg/logs")
     step_counter = tf.train.get_or_create_global_step()
     with writer.as_default(), tf.contrib.summary.always_record_summaries():
         for (batch, (images, labels)) in enumerate(dataset):
@@ -61,13 +66,12 @@ def train(dataset, config=None):
                     labels=labels,
                     predictions=tf.argmax(logits, axis=1, output_type=tf.int32))
                 tf.contrib.summary.scalar('accuracy', accuracy.result())
-                grads = tape.gradient(loss_value, model.variables)
-
                 if batch % 100 == 0:
                     print('Step #%d\tLoss: %.4f, Accuracy: %.4f' % (
                         batch, loss_value, accuracy.result()))
 
                 # Apply gradients to update weights
+                grads = tape.gradient(loss_value, model.variables)
                 optimizer.apply_gradients(
                     zip(grads, model.variables), global_step=step_counter)
     return model
@@ -82,6 +86,7 @@ def learning_rate():
 
 def loss(logits, labels):
     """Compute loss function for batch."""
+    # TODO: loss should be multinomial logistic regression objective
     return tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=logits, labels=labels))
@@ -90,49 +95,55 @@ def loss(logits, labels):
 def construct_model(config):
     """Returns VGG model with the specified parameters."""
     data_format = "channels_last"
-    pooling_window = config["max_pooling_window"]
 
+    pooling_window = config["max_pooling_window"]
     max_pool_layer = layers.MaxPooling2D(
         (pooling_window, pooling_window),
         (pooling_window, pooling_window),
         padding='same',
         data_format=data_format)
 
-    def conv_layer(size):
+    def conv_layer(channel_factor):
+        num_channels = config["num_initial_channels"] * (
+            config["max_pooling_window"]**channel_factor)
+        l2 = tensorflow.contrib.layers.l2_regularizer
         return layers.Conv2D(
-            size,
-            config["convolutional_stride"],
+            num_channels,
+            config["filter_size"],
+            strides=config["convolutional_stride"],
             padding='same',
             data_format=data_format,
-            activation=tf.nn.relu)
+            activation=tf.nn.relu,
+            kernel_regularizer=l2(config["l2_multiplier"]))
 
     model_layers = [
-        conv_layer(64),
-        conv_layer(64),
+        conv_layer(0),
+        conv_layer(0),
         max_pool_layer,
-        conv_layer(128),
-        conv_layer(128),
+        conv_layer(1),
+        conv_layer(1),
         max_pool_layer,
-        conv_layer(256),
-        conv_layer(256),
-        conv_layer(256),
-        conv_layer(256),
+        conv_layer(2),
+        conv_layer(2),
+        conv_layer(2),
+        conv_layer(2),
         max_pool_layer,
-        conv_layer(512),
-        conv_layer(512),
-        conv_layer(512),
-        conv_layer(512),
+        conv_layer(3),
+        conv_layer(3),
+        conv_layer(3),
+        conv_layer(3),
         max_pool_layer,
-        conv_layer(512),
-        conv_layer(512),
-        conv_layer(512),
-        conv_layer(512),
-        max_pool_layer,
+        # conv_layer(3),
+        # conv_layer(3),
+        # conv_layer(3),
+        # conv_layer(3),
+        # max_pool_layer,
         layers.Flatten(),
         layers.Dense(config["num_fc_channels"], activation=tf.nn.relu),
         layers.Dropout(config["dropout_ratio"]),
         layers.Dense(config["num_fc_channels"], activation=tf.nn.relu),
         layers.Dropout(config["dropout_ratio"]),
+        # TODO: num classes
         layers.Dense(10)
     ]
     return tf.keras.Sequential(model_layers)

@@ -5,7 +5,7 @@ import vgg.training as training
 
 
 def evaluate(model, dataset):
-    """Compute eval metrics on the provded test dataset."""
+    """Compute eval metrics on the provided test dataset."""
     mean_loss = tfe.metrics.Mean()
     accuracy = tfe.metrics.Accuracy()
     for x, y in dataset:
