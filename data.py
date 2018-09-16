@@ -27,10 +27,12 @@ def get_data(
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
         y_train = np.squeeze(y_train, axis=1)
         y_test = np.squeeze(y_test, axis=1)
-    if dataset == "cifar100":
+    elif dataset == "cifar100":
         (x_train, y_train), (x_test, y_test) = cifar100.load_data()
+        y_train = np.squeeze(y_train, axis=1)
+        y_test = np.squeeze(y_test, axis=1)
     else:
-        ValueError("Unknown dataset: %s" % dataset)
+        raise ValueError("Unknown dataset: %s" % dataset)
 
     if prep_fn:
         x_train, y_train, x_test, y_test = prep_fn(

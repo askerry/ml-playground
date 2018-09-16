@@ -61,7 +61,7 @@ def _learning_rate():
     return CONFIG["initial_learning_rate"]
 
 
-def construct_model(config):
+def construct_model(config, num_classes=10):
     """Returns VGG model with the specified parameters."""
     data_format = "channels_last"
 
@@ -115,8 +115,7 @@ def construct_model(config):
         layers.Dropout(config["dropout_ratio"]),
         layers.Dense(config["num_fc_channels"], activation=tf.nn.relu),
         layers.Dropout(config["dropout_ratio"]),
-        # TODO: num classes
-        layers.Dense(10)
+        layers.Dense(num_classes)
     ]
     return tf.keras.Sequential(model_layers)
 
