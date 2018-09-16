@@ -39,6 +39,7 @@ CONFIG = {
 
 
 def optimizer(config):
+    """Return configured optimizer."""
     optimizer = tf.train.MomentumOptimizer(
         _learning_rate, config["momentum"])
     optimizer = tf.train.AdamOptimizer()
@@ -72,6 +73,9 @@ def construct_model(config):
         data_format=data_format)
 
     def conv_layer(channel_factor):
+        # We generally want to keep the dimensionality fixed, so as we
+        # apply max pooling, we increase the number of channels by the
+        # same factor.
         num_channels = config["num_initial_channels"] * (
             config["max_pooling_window"]**channel_factor)
         l2 = tensorflow.contrib.layers.l2_regularizer

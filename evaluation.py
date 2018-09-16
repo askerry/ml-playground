@@ -4,6 +4,7 @@ import tensorflow.contrib.eager as tfe
 
 def evaluate(dataset, model, loss_fn):
     """Compute eval metrics on the provided test dataset."""
+    # TODO: allow for passing custom metrics
     mean_loss = tfe.metrics.Mean()
     accuracy = tfe.metrics.Accuracy()
     for x, y in dataset:

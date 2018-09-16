@@ -5,6 +5,11 @@ tf.enable_eager_execution()
 
 
 def train(dataset, model, loss_fn, optimizer):
+    """Trains the specified network.
+
+    Given a tf.data.Dataset, a model configuration, a loss function,
+    and a optimizer, run a training loop and log metrics.
+    """
 
     writer = tf.contrib.summary.create_file_writer("vgg/logs")
     step_counter = tf.train.get_or_create_global_step()
