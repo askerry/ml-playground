@@ -1,4 +1,4 @@
-# Implentations of various machine learning papers
+# Implementations of various machine learning papers
 
 ## Setup
 
@@ -10,7 +10,20 @@ Install dependencies with pip:
 pip install -r requirements.txt
 ```
 
+Train and evaluate a model via run script, e.g.
+
+```bash
+python run.py --model=vgg
+```
+
+Monitor training by launching TensorBoard local server pointed at the model's logs directory, e.g.
+```bash
+tensorboard --logdir=vgg/logs
+```
+
 ## Papers
 
 1. VGG: Image classification with deep convolutional network. Implements VGG architecture from
 [Very Deep Convolutional Networks for Large-Scale Image Recognition, Simonyan and Zisserman 2015](https://arxiv.org/pdf/1409.1556.pdf)
+
+2. Pixel-level scene segmentation with a multi-scale convolutional network. Implements architecture from [Learning Hierarchical Features for Scene Labeling](http://yann.lecun.com/exdb/publis/pdf/farabet-pami-13.pdf)
