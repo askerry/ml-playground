@@ -1,15 +1,20 @@
+import argparse
+
+import tensorflow as tf
+
 import data
 import evaluation
 import training
 
 import vgg.model
 
-import argparse
 
-
-def run(model, dataset=None):
+def run(model_name, dataset=None):
     """Run training and evaluation for specified model."""
-    if model == "vgg":
+
+    tf.enable_eager_execution()
+
+    if model_name == "vgg":
         if dataset is None:
             dataset = "cifar10"
         # TODO: calculate num classes from the dataset directly
@@ -18,7 +23,8 @@ def run(model, dataset=None):
         model = vgg.model.construct_model(
             vgg.model.CONFIG, num_classes=num_classes)
         optimizer = vgg.model.optimizer(vgg.model.CONFIG)
-        training.train(train_dataset, model, vgg.model.loss, optimizer)
+        training.train(
+            train_dataset, model, vgg.model.loss, optimizer, model_name)
         test_dataset = data.get_data(dataset, mode="test")
         evaluation.evaluate(test_dataset, model, vgg.model.loss)
     else:
