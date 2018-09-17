@@ -9,7 +9,7 @@ def get_data(
         dataset,
         mode="train",
         batch_size=256,
-        num_epochs=20,
+        num_epochs=10,
         prep_fn=None):
     """
     Construct a tf.data.Dataset for the specified dataset.

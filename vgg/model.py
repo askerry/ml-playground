@@ -34,7 +34,7 @@ CONFIG = {
 
     # Fully-connected layers have 4096 channels (except final
     # soft-max layer with has the same number of channels as classes)
-    "num_fc_channels": 1096,
+    "num_fc_channels": 4096,
 }
 
 
@@ -42,7 +42,6 @@ def optimizer(config):
     """Return configured optimizer."""
     optimizer = tf.train.MomentumOptimizer(
         _learning_rate, config["momentum"])
-    optimizer = tf.train.AdamOptimizer()
     return optimizer
 
 
@@ -105,11 +104,11 @@ def construct_model(config, num_classes=10):
         conv_layer(3),
         conv_layer(3),
         max_pool_layer,
-        # conv_layer(3),
-        # conv_layer(3),
-        # conv_layer(3),
-        # conv_layer(3),
-        # max_pool_layer,
+        conv_layer(3),
+        conv_layer(3),
+        conv_layer(3),
+        conv_layer(3),
+        max_pool_layer,
         layers.Flatten(),
         layers.Dense(config["num_fc_channels"], activation=tf.nn.relu),
         layers.Dropout(config["dropout_ratio"]),
