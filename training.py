@@ -14,20 +14,20 @@ def train(dataset, model, loss_fn, optimizer):
     writer = tf.contrib.summary.create_file_writer("vgg/logs")
     step_counter = tf.train.get_or_create_global_step()
     with writer.as_default(), tf.contrib.summary.always_record_summaries():
-        for (batch, (images, labels)) in enumerate(dataset):
+        for (batch, (x, y)) in enumerate(dataset):
             with tf.GradientTape() as tape:
 
                 # Compute forward_pass and loss
-                forward_pass = model(images, training=True)
-                loss_value = loss_fn(forward_pass, labels)
+                forward_pass = model(x, training=True)
+                loss_value = loss_fn(forward_pass, y)
 
                 # Write output logs and summary values
                 tf.contrib.summary.scalar('loss', loss_value)
                 accuracy = tfe.metrics.Accuracy()
                 accuracy(
-                    labels=labels,
+                    labels=y,
                     predictions=tf.argmax(forward_pass, axis=1, output_type=tf.int32))
-                tf.contrib.summary.scalar('accuracy', accuracy.result())
+                tf.contrib.summary.scalar('Accuracy', accuracy.result())
                 if batch % 100 == 0:
                     print('Step #%d\tLoss: %.4f, Accuracy: %.4f' % (
                         batch, loss_value, accuracy.result()))
