@@ -1,5 +1,8 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers
+
+import image_util
 
 layers = tf.keras.layers
 
@@ -122,9 +125,13 @@ def construct_model(config, num_classes=10):
 def prep(train_x, train_y, test_x, test_y):
     """Preprocessing applied to features.
 
-    From each pixel, subtract the mean RGB value of the training set.
+    - From each pixel, subtract the mean RGB value of the training set.
+    - Augment dataset by flipping images horizontally
     """
     mean_rgb = train_x.mean(axis=(0, 1, 2))
     train_x = train_x - mean_rgb
     test_x = test_x - mean_rgb
+    flipped_x = image_util.flip_images(train_x)
+    train_x = np.concatenate([train_x, flipped_x])
+    train_y = np.concatenate([train_y, train_y])
     return train_x, train_y, test_x, test_y
