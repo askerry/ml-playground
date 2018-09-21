@@ -17,18 +17,26 @@ def run(model_name, dataset=None):
     if model_name == "vgg":
         if dataset is None:
             dataset = "cifar10"
-        # TODO: calculate num classes from the dataset directly
-        num_classes = 10 if dataset == "cifar10" else 100
-        train_dataset = data.get_data(dataset, prep_fn=vgg.model.prep)
-        model = vgg.model.construct_model(
-            vgg.model.CONFIG, num_classes=num_classes)
-        optimizer = vgg.model.optimizer(vgg.model.CONFIG)
-        training.train(
-            train_dataset, model, vgg.model.loss, optimizer, model_name)
-        test_dataset = data.get_data(dataset, mode="test")
-        evaluation.evaluate(test_dataset, model, vgg.model.loss)
+        config, model_module = get_config(model_name, dataset)
     else:
-        raise ValueError("%s is not a valid model" % model)
+        raise ValueError("%s is not a valid model" % model_name)
+    train_dataset = data.get_data(dataset, prep_fn=vgg.model.prep)
+    model = model_module.construct_model(config)
+    optimizer = model_module.optimizer(config)
+    training.train(
+        train_dataset, model, model_module.loss, optimizer, model_name)
+    test_dataset = data.get_data(dataset, mode="test")
+    evaluation.evaluate(test_dataset, model, model_module.loss)
+
+
+def get_config(model_name, dataset):
+    """Get configuration for the specified model and dataset."""
+    if model_name == "vgg":
+        config = vgg.model.CONFIG
+        num_classes = 10 if dataset == "cifar10" else 100
+        config["num_classes"] = num_classes
+        model_module = vgg.model
+    return config, model_module
 
 
 if __name__ == "__main__":

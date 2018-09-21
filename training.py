@@ -64,9 +64,10 @@ def write_checkpoint(model, global_step, model_dir):
         checkpoint_prefix, global_step=global_step)
 
 
-def load_latest_checkpoint(model, model_dir, x_shape):
+def load_latest_checkpoint(
+        model, model_dir, x_shape, checkpoint_dirname="checkpoints"):
     """Read the latest snapshot of a model from disk."""
-    checkpoint_dir = os.path.join(model_dir, "checkpoints")
+    checkpoint_dir = os.path.join(model_dir, checkpoint_dirname)
     # HACK: variables must be initialized for them to be properly
     # restored from the checkpoint, so we do a dummy forward pass
     # to initialize the model variables
