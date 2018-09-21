@@ -122,6 +122,15 @@ def construct_model(config):
     return tf.keras.Sequential(model_layers)
 
 
+def preprocess_batch(dataset, metadata):
+    dataset = dataset.map(
+        lambda x, y: (image_util.flip_image_batch(x), y))
+    dataset = dataset.map(
+        lambda x, y: (image_util.color_shift_batch(
+            x, metadata["eig_vals"], metadata["eig_vecs"]), y))
+    return dataset
+
+
 def prep(train_x, train_y, test_x, test_y):
     """Preprocessing applied to features.
 
@@ -131,7 +140,9 @@ def prep(train_x, train_y, test_x, test_y):
     mean_rgb = train_x.mean(axis=(0, 1, 2))
     train_x = train_x - mean_rgb
     test_x = test_x - mean_rgb
-    flipped_x = image_util.flip_images(train_x)
-    train_x = np.concatenate([train_x, flipped_x])
-    train_y = np.concatenate([train_y, train_y])
-    return train_x, train_y, test_x, test_y
+    eig_vals, eig_vecs = image_util.image_pca(train_x)
+    metadata = {
+        "eig_vals": eig_vals,
+        "eig_vecs": eig_vecs,
+    }
+    return train_x, train_y, test_x, test_y, metadata

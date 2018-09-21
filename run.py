@@ -20,7 +20,9 @@ def run(model_name, dataset=None):
         config, model_module = get_config(model_name, dataset)
     else:
         raise ValueError("%s is not a valid model" % model_name)
-    train_dataset = data.get_data(dataset, prep_fn=vgg.model.prep)
+    train_dataset = data.get_data(
+        dataset, prep_fn=model_module.prep,
+        preprocess_batch=model_module.preprocess_batch)
     model = model_module.construct_model(config)
     optimizer = model_module.optimizer(config)
     training.train(

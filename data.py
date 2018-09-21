@@ -10,7 +10,8 @@ def get_data(
         mode="train",
         batch_size=256,
         num_epochs=10,
-        prep_fn=None):
+        prep_fn=None,
+        preprocess_batch=None):
     """
     Construct a tf.data.Dataset for the specified dataset.
 
@@ -35,7 +36,7 @@ def get_data(
         raise ValueError("Unknown dataset: %s" % dataset)
 
     if prep_fn:
-        x_train, y_train, x_test, y_test = prep_fn(
+        x_train, y_train, x_test, y_test, metadata = prep_fn(
             x_train, y_train, x_test, y_test)
 
     if mode == "train":
@@ -50,4 +51,6 @@ def get_data(
     drop_remainder = mode == "train"
     dataset = dataset.repeat(num_epochs).shuffle(buffer_size=500)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)
+    if preprocess_batch:
+        dataset = preprocess_batch(dataset, metadata)
     return dataset
