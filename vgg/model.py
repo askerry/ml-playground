@@ -132,12 +132,16 @@ def preprocess_batch(dataset, metadata):
 
 
 def prep(train_x, train_y, test_x, test_y):
-    """Preprocessing applied to features.
+    """Preprocessing applied to image features.
 
+    - Normalize the RGB values to 0-1 float scale
     - From each pixel, subtract the mean RGB value of the training set.
     - Augment dataset by flipping images horizontally
+    - Compute dataset statistics needed for PCA color augmentation
     """
-    mean_rgb = train_x.mean(axis=(0, 1, 2))
+    train_x = image_util.max_min_scale(train_x)
+    test_x = image_util.max_min_scale(test_x)
+    mean_rgb = tf.reduce_mean(train_x, axis=(0, 1, 2))
     train_x = train_x - mean_rgb
     test_x = test_x - mean_rgb
     eig_vals, eig_vecs = image_util.image_pca(train_x)

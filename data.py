@@ -26,12 +26,16 @@ def get_data(
     """
     if dataset == "cifar10":
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-        y_train = np.squeeze(y_train, axis=1)
-        y_test = np.squeeze(y_test, axis=1)
+        x_train = x_train.astype(np.float32)
+        x_test = x_test.astype(np.float32)
+        y_train = np.squeeze(y_train, axis=1).astype(np.int32)
+        y_test = np.squeeze(y_test, axis=1).astype(np.int32)
     elif dataset == "cifar100":
         (x_train, y_train), (x_test, y_test) = cifar100.load_data()
-        y_train = np.squeeze(y_train, axis=1)
-        y_test = np.squeeze(y_test, axis=1)
+        x_train = x_train.astype(np.float32)
+        x_test = x_test.astype(np.float32)
+        y_train = np.squeeze(y_train, axis=1).astype(np.int32)
+        y_test = np.squeeze(y_test, axis=1).astype(np.int32)
     else:
         raise ValueError("Unknown dataset: %s" % dataset)
 
@@ -46,8 +50,7 @@ def get_data(
     else:
         ValueError("Invalid mode: %s" % mode)
 
-    dataset = tensorflow.data.Dataset.from_tensor_slices(
-        (x.astype(np.float32), y.astype(np.int32)))
+    dataset = tensorflow.data.Dataset.from_tensor_slices((x, y))
     drop_remainder = mode == "train"
     dataset = dataset.repeat(num_epochs).shuffle(buffer_size=500)
     dataset = dataset.batch(batch_size, drop_remainder=drop_remainder)

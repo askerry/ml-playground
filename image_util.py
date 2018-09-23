@@ -9,6 +9,12 @@ def flip_image_batch(images, horizontal_axis=2):
     return tf.image.random_flip_left_right(images)
 
 
+def max_min_scale(images):
+    """Apply max-min scaling to transform to 0-1 range."""
+    return (images - tf.reduce_min(images)) / (
+        tf.reduce_max(images) - tf.reduce_min(images))
+
+
 def image_pca(images):
     """Compute PCA over all images in dataset."""
     # Collapse across batch and spatial dimensions to get a tensor
@@ -20,13 +26,13 @@ def image_pca(images):
 
 
 def color_shift_batch(images, eig_vals, eig_vecs):
-    """Applies a random RGB color shift to a batch of RGB images.
+    """Applies a color shift to a batch of RGB images.
 
     Implements the PCA-based color shifting augmentation described in
     Krizhevsky et al., 2012."""
-    # To each training image, add multiples of the found principal components,
+    # To each training image, add a multiple of the principal components,
     # proportional to corresponding eigenvalues, scaled by a random variable
-    # drawn from a normal distribution with mean 0, standard deviation .1.
+    # drawn from a normal distribution with mean 0, standard deviation 0.1.
     batch_size = tf.shape(images)[0]
     num_channels = 3
     alphas = tf.random_normal((batch_size, num_channels), mean=0, stddev=.1)
