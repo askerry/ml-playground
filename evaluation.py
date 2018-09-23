@@ -29,10 +29,10 @@ def evaluate(dataset, model, loss_fn):
 def eval_latest_checkpoint(model_name, dataset_name, checkpoint_dirname):
     """Run evaluation on the test set using the latest model checkpoint."""
     tf.enable_eager_execution()
-    config, model_module = run.get_config(model_name, dataset_name)
+    model_spec = run.get_model_spec(model_name, dataset_name)
     test_dataset = data.get_data(dataset_name, mode="test")
     x_shape = tuple(test_dataset.output_shapes[0].as_list())
-    model = model_module.construct_model(config)
+    model = model_spec.construct_model()
     model = training.load_latest_checkpoint(
         model, model_name, x_shape, checkpoint_dirname=checkpoint_dirname)
     accuracy = tfe.metrics.Accuracy()
