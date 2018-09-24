@@ -136,8 +136,6 @@ class ModelSpec(interfaces.ModelBase):
         - Augment dataset by flipping images horizontally
         - Compute dataset statistics needed for PCA color augmentation
         """
-        train_x = image_util.max_min_scale(train_x)
-        test_x = image_util.max_min_scale(test_x)
         mean_rgb = tf.reduce_mean(train_x, axis=(0, 1, 2))
         train_x = train_x - mean_rgb
         test_x = test_x - mean_rgb

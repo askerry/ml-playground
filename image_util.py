@@ -19,7 +19,8 @@ def image_pca(images):
     """Compute PCA over all images in dataset."""
     # Collapse across batch and spatial dimensions to get a tensor
     # of all pixel RGB values
-    reshaped = tf.reshape(images, (-1, 3))
+    scaled = max_min_scale(images)
+    reshaped = tf.reshape(scaled, (-1, 3))
     cov_mat = np.cov(reshaped, rowvar=False)
     eig_vals, eig_vecs = np.linalg.eig(cov_mat)
     return eig_vals, eig_vecs
@@ -39,4 +40,5 @@ def color_shift_batch(images, eig_vals, eig_vecs):
     shift = tf.tensordot(tf.to_float(eig_vecs),
                          tf.transpose(eig_vals * alphas),
                          axes=[[1], [0]])
-    return images + tf.reshape(shift, (batch_size, 1, 1, num_channels))
+    return images + tf.reshape(
+        tf.transpose(shift), (batch_size, 1, 1, num_channels))

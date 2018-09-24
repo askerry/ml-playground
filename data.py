@@ -9,7 +9,7 @@ def get_data(
         dataset,
         mode="train",
         batch_size=256,
-        num_epochs=10,
+        num_epochs=20,
         prep_fn=None,
         preprocess_batch=None):
     """
