@@ -67,16 +67,23 @@ def write_checkpoint(model, global_step, model_dir, training_id):
         checkpoint_prefix, global_step=global_step)
 
 
-def load_latest_checkpoint(
-        model, model_dir, x_shape, checkpoint_dirname="checkpoints"):
-    """Read the latest snapshot of a model from disk."""
-    checkpoint_dir = os.path.join(model_dir, checkpoint_dirname)
+def load_checkpoint(
+        model, x_shape,
+        checkpoint_dir=None, checkpoint_file=None):
+    """Read a snapshot of the specified model from disk.
+
+    If a checkpoint file is not specified, defaults to latest in the provided
+    directory. If a specific checkpoint_file is not provided, a checkpoint_dir
+    must be specified.
+    """
+    if checkpoint_file is None:
+        checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+
     # HACK: variables must be initialized for them to be properly
     # restored from the checkpoint, so we do a dummy forward pass
     # to initialize the model variables
     dummy_x = np.zeros((1,) + x_shape[1:], dtype=np.float32)
     model(tfe.Variable(dummy_x, dtype=np.float32), training=True)
-    latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
-    print("Loading model from latest checkpoint: %s" % latest_checkpoint)
-    tfe.Saver(model.variables).restore(latest_checkpoint)
+    print("Loading model from checkpoint: %s" % checkpoint_file)
+    tfe.Saver(model.variables).restore(checkpoint_file)
     return model
