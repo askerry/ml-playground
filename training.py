@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import numpy as np
@@ -18,7 +19,9 @@ def train(dataset,
     and a optimizer, run a training loop and log metrics.
     """
 
-    log_file = os.path.join(model_dir, "logs")
+    start = datetime.datetime.now()
+    training_id = "%s-%s" % (model_dir, start.strftime("%Y%m%d.%H%M"))
+    log_file = os.path.join(model_dir, "logs/%s" % training_id)
     writer = tf.contrib.summary.create_file_writer(log_file)
     step_counter = tf.train.get_or_create_global_step()
     with writer.as_default(), tf.contrib.summary.always_record_summaries():
@@ -42,7 +45,7 @@ def train(dataset,
                         batch_num, loss_value, accuracy.result()))
 
                 if batch_num % checkpoint_frequency == 0:
-                    write_checkpoint(model, step_counter, model_dir)
+                    write_checkpoint(model, step_counter, model_dir, training_id)
 
                 # Apply gradients to update weights
                 grads = tape.gradient(loss_value, model.variables)
@@ -53,13 +56,13 @@ def train(dataset,
     return model
 
 
-def write_checkpoint(model, global_step, model_dir):
+def write_checkpoint(model, global_step, model_dir, training_id):
     """Write a snapshot of the current model to disk."""
     print("Writing model checkpoint on step %s" % global_step.numpy())
-    checkpoint_dir = os.path.join(model_dir, "checkpoints")
+    checkpoint_dir = os.path.join(model_dir, "checkpoints/%s" % training_id)
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
     if not os.path.exists(checkpoint_dir):
-        os.mkdir(checkpoint_dir)
+        os.makedirs(checkpoint_dir)
     tfe.Saver(model.variables).save(
         checkpoint_prefix, global_step=global_step)
 
