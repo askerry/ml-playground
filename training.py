@@ -1,9 +1,13 @@
 import datetime
 import os
+import time
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
+
+LOGS_DIR = "logs"
+CHECKPOINT_DIR = "checkpoints"
 
 
 def train(dataset,
@@ -21,9 +25,10 @@ def train(dataset,
 
     start = datetime.datetime.now()
     training_id = "%s-%s" % (model_dir, start.strftime("%Y%m%d.%H%M"))
-    log_file = os.path.join(model_dir, "logs/%s" % training_id)
+    log_file = os.path.join(model_dir, LOGS_DIR, training_id)
     writer = tf.contrib.summary.create_file_writer(log_file)
     step_counter = tf.train.get_or_create_global_step()
+    start_time = time.time()
     with writer.as_default(), tf.contrib.summary.always_record_summaries():
         for (x, y) in dataset:
             batch_num = step_counter.numpy()
@@ -41,8 +46,9 @@ def train(dataset,
                 accuracy(labels=y, predictions=class_predictions)
                 tf.contrib.summary.scalar('Accuracy', accuracy.result())
                 if batch_num % log_frequency == 0:
-                    print('Step #%d\tLoss: %.4f, Accuracy: %.4f' % (
-                        batch_num, loss_value, accuracy.result()))
+                    minutes_passed = (time.time() - start_time) / 60
+                    print('(%d mins) Step #%d\tLoss: %.4f, Accuracy: %.4f' % (
+                        minutes_passed, batch_num, loss_value, accuracy.result()))
 
                 if batch_num % checkpoint_frequency == 0:
                     write_checkpoint(model, step_counter, model_dir, training_id)
@@ -59,7 +65,7 @@ def train(dataset,
 def write_checkpoint(model, global_step, model_dir, training_id):
     """Write a snapshot of the current model to disk."""
     print("Writing model checkpoint on step %s" % global_step.numpy())
-    checkpoint_dir = os.path.join(model_dir, "checkpoints/%s" % training_id)
+    checkpoint_dir = os.path.join(model_dir, CHECKPOINT_DIR, training_id)
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)

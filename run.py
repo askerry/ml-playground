@@ -1,4 +1,6 @@
 import argparse
+import os
+import time
 
 import tensorflow as tf
 
@@ -15,8 +17,7 @@ def run(model_name, dataset=None):
     tf.enable_eager_execution()
 
     if model_name == "vgg":
-        if dataset is None:
-            dataset = "cifar10"
+        dataset = dataset or "cifar10"
         model_spec = get_model_spec(model_name, dataset)
     else:
         raise ValueError("%s is not a valid model" % model_name)
@@ -29,6 +30,7 @@ def run(model_name, dataset=None):
         train_dataset, model, model_spec.loss, optimizer, model_name)
     test_dataset = data.get_data(dataset, mode="test")
     evaluation.evaluate(test_dataset, model, model_spec.loss)
+    return model
 
 
 def get_model_spec(model_name, dataset):
@@ -39,6 +41,26 @@ def get_model_spec(model_name, dataset):
         config["num_classes"] = num_classes
         model_spec = vgg.model.ModelSpec(config)
     return model_spec
+
+
+def get_tensorboard_url(model, port=6006):
+    """Return localtunnel url for viewing tensorboard.
+
+    Used when running model training on colab."""
+    get_ipython().system_raw('npm install -g localtunnel')
+    log_dir = os.path.join(model, training.LOGS_DIR)
+    get_ipython().system_raw(
+        'tensorboard --logdir {} --host 0.0.0.0 --port {} &'
+        .format(log_dir, port)
+    )
+    # Tunnel port 6006 (TensorBoard assumed running)
+    output_file = "url.txt"
+    get_ipython().system_raw(
+        'lt --port {} >> {} 2>&1 &'.format(port, output_file))
+    time.sleep(2)
+    with open(output_file, "r") as f:
+        for line in f.readlines():
+            print(line)
 
 
 if __name__ == "__main__":
