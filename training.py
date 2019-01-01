@@ -15,6 +15,7 @@ def train(dataset,
           loss_fn,
           optimizer,
           model_dir,
+          problem_type,
           log_frequency=100,
           checkpoint_frequency=100):
     """Trains the specified network.
@@ -30,25 +31,33 @@ def train(dataset,
     step_counter = tf.train.get_or_create_global_step()
     start_time = time.time()
     with writer.as_default(), tf.contrib.summary.always_record_summaries():
-        for (x, y) in dataset:
+        for element in dataset:
+            x = element["inputs"]
+            y = element["targets"]
             batch_num = step_counter.numpy()
             with tf.GradientTape() as tape:
 
-                # Compute forward_pass and loss
-                forward_pass = model(x, training=True)
-                loss_value = loss_fn(forward_pass, y)
-
+                def classification_batch():
+                    # Compute forward_pass and loss
+                    forward_pass = model(x, training=True)
+                    loss_value = loss_fn(forward_pass, y)
+                    accuracy = tfe.metrics.Accuracy()
+                    class_predictions = tf.argmax(
+                        forward_pass, axis=1, output_type=tf.int32)
+                    accuracy(labels=y, predictions=class_predictions)
+                    tf.contrib.summary.scalar('Accuracy', accuracy.result())
+                    return loss_value, accuracy.result(), "Accuracy"
+                if problem_type == "classification":
+                    loss_value, metric, metric_name = classification_batch()
+                else:
+                    raise ValueError("No problem type %s" % problem_type)
                 # Write output logs and summary values
                 tf.contrib.summary.scalar('loss', loss_value)
-                accuracy = tfe.metrics.Accuracy()
-                class_predictions = tf.argmax(
-                    forward_pass, axis=1, output_type=tf.int32)
-                accuracy(labels=y, predictions=class_predictions)
-                tf.contrib.summary.scalar('Accuracy', accuracy.result())
+
                 if batch_num % log_frequency == 0:
                     minutes_passed = (time.time() - start_time) / 60
-                    print('(%d mins) Step #%d\tLoss: %.4f, Accuracy: %.4f' % (
-                        minutes_passed, batch_num, loss_value, accuracy.result()))
+                    print('(%d mins) Step #%d\tLoss: %.4f, %s: %.4f' % (
+                        minutes_passed, batch_num, loss_value, metric_name, metric))
 
                 if batch_num % checkpoint_frequency == 0:
                     write_checkpoint(model, step_counter, model_dir, training_id)

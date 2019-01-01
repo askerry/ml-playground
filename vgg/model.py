@@ -13,7 +13,7 @@ layers = tf.keras.layers
 
 CONFIG = {
     "batch_size": 256,
-    "num_epochs": 74,
+    "num_epochs": 10,
 
     # Optimized using mini-batch gradient descent with momentum of .9
     "momentum": .9,
@@ -120,15 +120,19 @@ class ModelSpec(interfaces.ModelBase):
     @staticmethod
     def preprocess_batch(dataset, metadata):
         """Preprocess a single batch of data."""
-        dataset = dataset.map(
-            lambda x, y: (image_util.flip_image_batch(x), y))
-        dataset = dataset.map(
-            lambda x, y: (image_util.color_shift_batch(
-                x, metadata["eig_vals"], metadata["eig_vecs"]), y))
+        dataset = dataset.map(lambda batch: {
+            "inputs": image_util.flip_image_batch(batch["inputs"]),
+            "targets": batch["targets"],
+        })
+        dataset = dataset.map(lambda batch: {
+            "inputs": image_util.color_shift_batch(
+                batch["inputs"], metadata["eig_vals"], metadata["eig_vecs"]),
+            "targets": batch["targets"],
+        })
         return dataset
 
     @staticmethod
-    def prep(train_x, train_y, test_x, test_y):
+    def prep(train_x, train_y, test_x, test_y, metadata):
         """Preprocessing applied to image features.
 
         - Normalize the RGB values to 0-1 float scale
@@ -140,10 +144,10 @@ class ModelSpec(interfaces.ModelBase):
         train_x = train_x - mean_rgb
         test_x = test_x - mean_rgb
         eig_vals, eig_vecs = image_util.image_pca(train_x)
-        metadata = {
+        metadata.update({
             "eig_vals": eig_vals,
             "eig_vecs": eig_vecs,
-        }
+        })
         return train_x, train_y, test_x, test_y, metadata
 
 

@@ -7,8 +7,9 @@ class ModelBase(ABC):
     Each model specification must include the following methods
     used by the shared training and eval logic."""
 
-    def __init__(self, config):
+    def __init__(self, config, problem_type):
         self.config = config
+        self.problem_type = problem_type
 
     @abstractmethod
     def construct_model(self):

@@ -21,16 +21,18 @@ def run(model_name, dataset=None):
         model_spec = get_model_spec(model_name, dataset)
     else:
         raise ValueError("%s is not a valid model" % model_name)
-    train_dataset = data.get_data(
+    train_dataset, metadata = data.get_data(
         dataset, prep_fn=model_spec.prep,
         preprocess_batch=model_spec.preprocess_batch)
     model = model_spec.construct_model()
     optimizer = model_spec.optimizer()
     training.train(
-        train_dataset, model, model_spec.loss, optimizer, model_name)
-    test_dataset = data.get_data(dataset, mode="test")
-    evaluation.evaluate(test_dataset, model, model_spec.loss)
-    return model
+        train_dataset, model, model_spec.loss, optimizer,
+        model_name, model_spec.problem_type)
+    test_dataset, _ = data.get_data(dataset, mode="test")
+    evaluation.evaluate(
+        test_dataset, model, model_spec.loss, model_spec.problem_type)
+    return model, metadata
 
 
 def get_model_spec(model_name, dataset):
@@ -39,7 +41,7 @@ def get_model_spec(model_name, dataset):
         config = vgg.model.CONFIG
         num_classes = 10 if dataset == "cifar10" else 100
         config["num_classes"] = num_classes
-        model_spec = vgg.model.ModelSpec(config)
+        model_spec = vgg.model.ModelSpec(config, "classification")
     return model_spec
 
 
