@@ -128,7 +128,7 @@ class ModelSpec(interfaces.ModelBase):
         return dataset
 
     @staticmethod
-    def prep(train_x, train_y, test_x, test_y):
+    def prep(train_x, train_y, test_x, test_y, metadata):
         """Preprocessing applied to image features.
 
         - Normalize the RGB values to 0-1 float scale
@@ -140,10 +140,10 @@ class ModelSpec(interfaces.ModelBase):
         train_x = train_x - mean_rgb
         test_x = test_x - mean_rgb
         eig_vals, eig_vecs = image_util.image_pca(train_x)
-        metadata = {
+        metadata.update({
             "eig_vals": eig_vals,
             "eig_vecs": eig_vecs,
-        }
+        })
         return train_x, train_y, test_x, test_y, metadata
 
 
