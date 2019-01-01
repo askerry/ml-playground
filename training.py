@@ -58,7 +58,7 @@ def train(dataset,
                 optimizer.apply_gradients(
                     zip(grads, model.variables), global_step=step_counter)
 
-    write_checkpoint(model, step_counter, model_dir)
+    write_checkpoint(model, step_counter, model_dir, training_id)
     return model
 
 
