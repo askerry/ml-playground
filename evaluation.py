@@ -9,22 +9,26 @@ import run
 import training
 
 
-def evaluate(dataset, model, loss_fn):
+def evaluate(dataset, model, loss_fn, problem_type):
     """Compute eval metrics on the provided test dataset."""
     # TODO: allow for passing custom metrics
     mean_loss = tfe.metrics.Mean()
     accuracy = tfe.metrics.Accuracy()
-    for x, y in dataset:
-        forward_pass = model(x, training=False)
+    for batch in dataset:
+        forward_pass = model(batch["inputs"], training=False)
         predictions = tf.argmax(forward_pass, axis=1, output_type=tf.int32)
-        loss = loss_fn(forward_pass, y)
+        loss = loss_fn(forward_pass, batch["targets"])
         mean_loss(loss)
-        accuracy(
-            labels=y,
-            predictions=predictions)
-
-    print("Metrics on eval set: Loss=%.4f, Accuracy=%.4f" % (
-        mean_loss.result().numpy(), accuracy.result().numpy()))
+        if problem_type == "classification":
+            accuracy(
+                labels=batch["targets"],
+                predictions=predictions)
+    if problem_type == "classification":
+        print("Metrics on eval set: Loss=%.4f, Accuracy=%.4f" % (
+            mean_loss.result().numpy(), accuracy.result().numpy()))
+    else:
+        print("Metrics on eval set: Loss=%.4f" % (
+            mean_loss.result().numpy()))
 
 
 def eval_checkpoint(

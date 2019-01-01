@@ -21,16 +21,16 @@ def run(model_name, dataset=None):
         model_spec = get_model_spec(model_name, dataset)
     else:
         raise ValueError("%s is not a valid model" % model_name)
-    train_dataset = data.get_data(
+    train_dataset, metadata = data.get_data(
         dataset, prep_fn=model_spec.prep,
         preprocess_batch=model_spec.preprocess_batch)
     model = model_spec.construct_model()
     optimizer = model_spec.optimizer()
     training.train(
         train_dataset, model, model_spec.loss, optimizer, model_name)
-    test_dataset = data.get_data(dataset, mode="test")
+    test_dataset, _ = data.get_data(dataset, mode="test")
     evaluation.evaluate(test_dataset, model, model_spec.loss)
-    return model
+    return model, metadata
 
 
 def get_model_spec(model_name, dataset):
