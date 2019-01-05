@@ -1,4 +1,6 @@
+from collections import OrderedDict
 import datetime
+import logging
 import os
 import time
 
@@ -15,9 +17,9 @@ def train(dataset,
           loss_fn,
           optimizer,
           model_dir,
+          problem_type,
           log_frequency=100,
-          checkpoint_frequency=100,
-          problem_type="classification"):
+          checkpoint_frequency=100):
     """Trains the specified network.
 
     Given a tf.data.Dataset, a model configuration, a loss function,
@@ -38,32 +40,47 @@ def train(dataset,
             with tf.GradientTape() as tape:
 
                 def classification_batch():
-                    # Compute forward_pass and loss
-                    forward_pass = model(x, training=True)
-                    loss_value = loss_fn(forward_pass, y)
+                    """Train step for standard classification problems"""
+                    logits = model(x, training=True)
+                    loss_value = loss_fn(logits, y)
                     accuracy = tfe.metrics.Accuracy()
                     class_predictions = tf.argmax(
-                        forward_pass, axis=1, output_type=tf.int32)
+                        logits, axis=1, output_type=tf.int32)
                     accuracy(labels=y, predictions=class_predictions)
-                    tf.contrib.summary.scalar('Accuracy', accuracy.result())
-                    return loss_value, accuracy.result(), "Accuracy"
-                if problem_type == "classification":
-                    loss_value, metric, metric_name = classification_batch()
+                    return class_predictions, OrderedDict(
+                        (("loss", loss_value), ("accuracy", accuracy.result())))
+                def translation_batch():
+                    """Train step for common translation problems"""
+                    predictions, loss_value = model(x, y, loss_fn, training=True)
+                    approx_bleu = bleu_score(predictions, y)
+                    return predictions, OrderedDict(
+                        (("loss", loss_value), ("approx_bleu_score", approx_bleu)))
+                if problem_type == "translation":
+                    predictions, metrics = translation_batch()
+                elif problem_type == "classification":
+                    predictions, metrics = classification_batch()
                 else:
                     raise ValueError("No problem type %s" % problem_type)
+
                 # Write output logs and summary values
-                tf.contrib.summary.scalar('loss', loss_value)
+                for metric_name, metric in metrics.items():
+                    tf.contrib.summary.scalar(metric_name, metric)
 
                 if batch_num % log_frequency == 0:
+                    logging.debug("example predictions: ", predictions[0])
+                    logging.debug("SUM: ", tf.reduce_sum(predictions))
                     minutes_passed = (time.time() - start_time) / 60
-                    print('(%d mins) Step #%d\tLoss: %.4f, %s: %.4f' % (
-                        minutes_passed, batch_num, loss_value, metric_name, metric))
+                    metric_str = ", ".join(
+                        ["%s: %.4f" % item for item in metrics.items()])
+                    logging.info('(%d mins) Step #%d\t %s' % (
+                        minutes_passed, batch_num, metric_str))
+                    logging.info("......................................\n\n")
 
                 if batch_num % checkpoint_frequency == 0:
                     write_checkpoint(model, step_counter, model_dir, training_id)
 
                 # Apply gradients to update weights
-                grads = tape.gradient(loss_value, model.variables)
+                grads = tape.gradient(metrics["loss"], model.variables)
                 optimizer.apply_gradients(
                     zip(grads, model.variables), global_step=step_counter)
 
