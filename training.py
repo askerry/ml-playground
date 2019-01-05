@@ -1,10 +1,13 @@
+from collections import OrderedDict
 import datetime
+import logging
 import os
 import time
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
+import tensor2tensor.utils.bleu_hook
 
 LOGS_DIR = "logs"
 CHECKPOINT_DIR = "checkpoints"
@@ -38,34 +41,54 @@ def train(dataset,
             with tf.GradientTape() as tape:
 
                 def classification_batch():
-                    # Compute forward_pass and loss
-                    forward_pass = model(x, training=True)
-                    loss_value = loss_fn(forward_pass, y)
+                    """Train step for standard classification problems"""
+                    logits = model(x, training=True)
+                    loss_value = loss_fn(logits, y)
                     accuracy = tfe.metrics.Accuracy()
                     class_predictions = tf.argmax(
-                        forward_pass, axis=1, output_type=tf.int32)
+                        logits, axis=1, output_type=tf.int32)
                     accuracy(labels=y, predictions=class_predictions)
-                    tf.contrib.summary.scalar('Accuracy', accuracy.result())
-                    return loss_value, accuracy.result(), "Accuracy"
-                if problem_type == "classification":
-                    loss_value, metric, metric_name = classification_batch()
+                    return class_predictions, OrderedDict(
+                        (("loss", loss_value), ("accuracy", accuracy.result())))
+                def translation_batch():
+                    """Train step for common translation problems"""
+                    logits, loss_value = model(x, y, loss_fn, training=True)
+                    # Divide by batch size so that the loss is invariant to it
+                    loss_value = loss_value / x.shape[0].value
+                    predictions = tf.argmax(logits, axis=-1)
+                    approx_bleu = tf.py_func(
+                        tensor2tensor.utils.bleu_hook.compute_bleu, (y, predictions),
+                        tf.float32)
+                    return predictions, OrderedDict(
+                        (("loss", loss_value), ("approx_bleu_score", approx_bleu)))
+                if problem_type == "translation":
+                    predictions, metrics = translation_batch()
+                elif problem_type == "classification":
+                    predictions, metrics = classification_batch()
                 else:
                     raise ValueError("No problem type %s" % problem_type)
+
                 # Write output logs and summary values
-                tf.contrib.summary.scalar('loss', loss_value)
+                for metric_name, metric in metrics.items():
+                    tf.contrib.summary.scalar(metric_name, metric)
 
                 if batch_num % log_frequency == 0:
+                    logging.debug("example predictions: %s", predictions[0])
+                    logging.debug("SUM: %s", tf.reduce_sum(predictions))
                     minutes_passed = (time.time() - start_time) / 60
-                    print('(%d mins) Step #%d\tLoss: %.4f, %s: %.4f' % (
-                        minutes_passed, batch_num, loss_value, metric_name, metric))
+                    metric_str = ", ".join(
+                        ["%s: %.4f" % item for item in metrics.items()])
+                    logging.info('(%d mins) Step #%d\t %s' % (
+                        minutes_passed, batch_num, metric_str))
+                    logging.info("......................................\n\n")
 
                 if batch_num % checkpoint_frequency == 0:
                     write_checkpoint(model, step_counter, model_dir, training_id)
 
                 # Apply gradients to update weights
-                grads = tape.gradient(loss_value, model.variables)
+                gradients = tape.gradient(metrics["loss"], model.variables)
                 optimizer.apply_gradients(
-                    zip(grads, model.variables), global_step=step_counter)
+                    zip(gradients, model.variables), global_step=step_counter)
 
     write_checkpoint(model, step_counter, model_dir, training_id)
     return model
@@ -97,8 +120,8 @@ def load_checkpoint(
     # HACK: variables must be initialized for them to be properly
     # restored from the checkpoint, so we do a dummy forward pass
     # to initialize the model variables
-    dummy_x = np.zeros((1,) + x_shape[1:], dtype=np.float32)
-    model(tfe.Variable(dummy_x, dtype=np.float32), training=True)
+    dummy_x = np.zeros(x_shape, dtype=np.float32)
+    model(tfe.Variable(dummy_x, dtype=np.float32), training=False)
     print("Loading model from checkpoint: %s" % checkpoint_file)
     tfe.Saver(model.variables).restore(checkpoint_file)
     return model
