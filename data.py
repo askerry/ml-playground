@@ -53,6 +53,7 @@ def get_data(
         problem.generate_data(data_dir, tmp_dir)
         dataset = problem.dataset(mode, data_dir)
         metadata["problem"] = problem
+        metadata["max_length"] = 30
     elif dataset_name == "anki_spaeng":
         path_to_zip = tf.keras.utils.get_file(
             'spa-eng.zip', origin='http://download.tensorflow.org/data/spa-eng.zip', 

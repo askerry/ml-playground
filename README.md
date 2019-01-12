@@ -26,4 +26,7 @@ tensorboard --logdir=vgg/logs
 1. VGG: Image classification with deep convolutional network. Implements VGG architecture from
 [Very Deep Convolutional Networks for Large-Scale Image Recognition, Simonyan and Zisserman 2015](https://arxiv.org/pdf/1409.1556.pdf)
 
-2. Pixel-level scene segmentation with a multi-scale convolutional network. Implements architecture from [Learning Hierarchical Features for Scene Labeling](http://yann.lecun.com/exdb/publis/pdf/farabet-pami-13.pdf)
+2. NMT: Encoder-Decoder architecture for natural language translation [Neural Machine Translation by Jointly Learning to Align and Translate
+](https://arxiv.org/abs/1409.0473)
+
+3. Pixel-level scene segmentation with a multi-scale convolutional network. Implements architecture from [Learning Hierarchical Features for Scene Labeling](http://yann.lecun.com/exdb/publis/pdf/farabet-pami-13.pdf)

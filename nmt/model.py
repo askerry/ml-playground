@@ -20,6 +20,7 @@ CONFIG = {
     "dropout_ratio": 0.1,
     "learning_rate": 0.0001,
     "EOS": 1,
+    "SOS": 0,
 }
 
 
@@ -64,9 +65,9 @@ class Decoder(tf.keras.Model):
         self.fc = layers.Dense(vocab_size)
 
         # used for attention
-        self.fc1 = layers.Dense(self.num_units)
-        self.fc2 = layers.Dense(self.num_units)
-        self.V = layers.Dense(1)
+        self.attention_fc1 = layers.Dense(self.num_units)
+        self.attention_fc2 = layers.Dense(self.num_units)
+        self.attention_v = layers.Dense(1)
 
     def _get_attention_weights(self, encoder_output, hidden):
         """Calculates Bahdanau attention weights.
@@ -77,8 +78,8 @@ class Decoder(tf.keras.Model):
         # to align with [batch_size, sequence_length, hidden size] for encoder output
         hidden_with_time_axis = tf.expand_dims(hidden, 1)
         # score will have shape [batch_size, sequence length, 1]
-        score = self.V(tf.nn.tanh(
-            self.FC1(encoder_output) + self.FC2(hidden_with_time_axis)))
+        score = self.attention_v(tf.nn.tanh(
+            self.attention_fc1(encoder_output) + self.attention_fc2(hidden_with_time_axis)))
         attention_weights = tf.nn.softmax(score, axis=1)
         # Returns a [batch_size, sequence length, 1] shaped attention vector
         return attention_weights
@@ -112,7 +113,7 @@ class Decoder(tf.keras.Model):
         # Combine the previous word and the context vector into a single input
         # with shape [batch_size, 1, embedding dim + hidden units]
         concatenated_input = tf.concat(
-            [tf.expand_dims(context_vector, 1), embedded_input], axis=-1)
+            [tf.expand_dims(weighted_context_vector, 1), embedded_input], axis=-1)
         output, state = self.decoder_cell(
             concatenated_input, initial_state = hidden)
         # Resulting output is [batch_size, hidden units]
@@ -147,7 +148,7 @@ class NMT(tf.keras.Model):
         hidden = encoder_hidden
         decoder_input = self._initialize_decoder_input(batch_size)
         for t in range(0, num_words):
-            logits, hidden, _ = self.decoder(decoder_input, context_vector, hidden)
+            logits, hidden = self.decoder(decoder_input, context_vector, hidden)
             predicted_logits.append(logits)
             predictions = tf.argmax(logits, axis=1)
             if training:
@@ -178,6 +179,20 @@ class NMT(tf.keras.Model):
         decoder_output, loss = self._decode(
             encoder_hidden, encoder_output, loss_fn, y, training, batch_size)
         return decoder_output, loss
+
+
+def gru(units):
+    if tf.test.is_gpu_available():
+       return tf.keras.layers.CuDNNGRU(units,
+                                       return_sequences=True,
+                                       return_state=True,
+                                       recurrent_initializer='glorot_uniform')
+    else:
+        return tf.keras.layers.GRU(units,
+                                   return_sequences=True,
+                                   return_state=True,
+                                   recurrent_activation='sigmoid',
+                                   recurrent_initializer='glorot_uniform')
 
 
 class ModelSpec(interfaces.ModelBase):
